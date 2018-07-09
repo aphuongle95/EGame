@@ -14,9 +14,8 @@ class Breeder:
         return self.breed_function(population)
 
     def initialize_population(self, num_individuals, color):
-         """
-        init function with each individuals having outstanding perception, ability and desire (centric value)
-        in one out of the features. other features value are small random value
+        """
+        init function with each individuals having outstanding perception, ability and desire (centric value) in one out of the features. other features value are small random value
         """
         population = []
         for i in range(num_individuals):
@@ -80,7 +79,7 @@ class Breeder:
         return x
 
     def breed_function(self, population):
-         """
+        """
         breed function with our created crossover, tweak and mutation
         """
         population_cpy = copy(population)
