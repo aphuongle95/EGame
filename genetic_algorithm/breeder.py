@@ -30,24 +30,98 @@ class Breeder:
             where = choice(alive)._position
             color = alive[0].color
 
-            selected = self.select_example(population_cpy)
+            selected = self.select(population_cpy)
             parent1 = selected[0]
+            best = parent1
+            best_score = self.assess_individual_fitness(parent1)
+
             parent2 = selected[1]
-            child1, child2 = self.crossover_example(copy(parent1), copy(parent2))
-            child1 = self.tweak_example(child1)
-            child2 = self.tweak_example(child2)
-            score_child1 = self.assess_individual_fitness_example(child1)
-            score_child2 = self.assess_individual_fitness_example(child2)
-            if score_child1 > score_child2:
-                new_individual = Dot(self.parent, color=color, position=where, dna=child1.get_dna())
-            else:
-                new_individual = Dot(self.parent, color=color, position=where, dna=child2.get_dna())
+            score_parent2 = self.assess_individual_fitness(parent1)
+            if(score_parent2>best_score):
+                best = parent2
+                best_score = score_parent2
+
+            child1, child2 = self.recombine(copy(parent1), copy(parent2))
+            # child1, child2 = self.crossover_example(copy(parent1), copy(parent2))
+            # child1 = self.tweak_example(child1)
+            # child2 = self.tweak_example(child2)
+            tweak_prob = random.random()
+            if(tweak_prob < 0.1):
+                child1 = self.tweak_random(child1)
+                child2 = self.tweak_random(child2)
+            elif(tweak_prob < 0.2):
+                child1 = self.tweak_default(child1)
+                child2 = self.tweak_default(child2)
+
+
+            score_child1 = self.assess_individual_fitness(child1)
+            if(score_child1>best_score):
+                best = child1
+                best_score = score_child1
+
+            score_child2 = self.assess_individual_fitness(child2)
+            if(score_child2>best_score):
+                best = child2
+                best_score = score_child2
+
+            new_individual = Dot(self.parent, color=color, position=where, dna=best.get_dna())
             population_cpy.append(new_individual)
         for dead_individual in dead:
             population_cpy.remove(dead_individual)
         return population_cpy
         # return self.breed_copy_dead_example(population)
         # return self.breed_example_with_ga(population)
+
+    def tweak_default(self, individual):
+        #tweak_example
+        """
+        we want to increase
+        predator perception
+        speed
+        seek health potion desire
+        """
+
+        dna = individual.get_dna()
+        increase = uniform(0, 0.1)
+
+        perc = dna[0]
+        des = dna[1]
+        abil = dna[2]
+
+        perc = self.mutate_dna(
+            dna=perc, increase_value=increase, increase=5)
+        des = self.mutate_dna(
+            dna=des, increase_value=increase, increase=2)
+        abil = self.mutate_dna(
+            dna=abil, increase_value=increase, increase=1)
+
+        dna = [perc, des, abil]
+        individual.dna_to_traits(dna)
+        return individual
+
+    def tweak_random(self, individual):
+        #tweak_example
+        """
+        we want to increase the trait to seek food and increase armor
+        """
+
+        dna = individual.get_dna()
+        increase = uniform(0, 0.1)
+
+        perc = dna[0]
+        des = dna[1]
+        abil = dna[2]
+
+        perc = self.mutate_dna(
+            dna=perc, increase_value=increase, increase=random.randint(0, 5))
+        des = self.mutate_dna(
+            dna=des, increase_value=increase, increase=random.randint(0, 5))
+        abil = self.mutate_dna(
+            dna=abil, increase_value=increase, increase=random.randint(0, 4))
+
+        dna = [perc, des, abil]
+        individual.dna_to_traits(dna)
+        return individual
 
     def initialize_population(self, num_individuals, color):
         """
@@ -116,108 +190,6 @@ class Breeder:
         x.desires.seek_corpse = c[5]
         return x
 
-    def initialize_population_example(self, num_individuals, color):
-        """
-        example initializer
-        creates individuals with random traits
-        """
-        population = []
-        for _ in range(num_individuals):
-            population.append(Dot(self.parent, color=color))
-        return population
-
-
-    def breed_copy_dead_example(self, population):
-        """
-        example breeding function
-        simply copy dead individuals traits to a new individual
-        """
-        population_cpy = copy(population)
-
-        dead = []
-        alive = []
-        for individual in population_cpy:
-            if individual.dead:
-                dead.append(individual)
-            else:
-                alive.append(individual)
-
-        if len(alive) == 0:
-            print("END OF BREED")
-            return None
-        for _ in range(len(dead)):
-            dead_individual = choice(dead)
-            alive_individual = choice(alive)
-
-            new_individual = Dot(self.parent,
-                                 color=dead_individual.color,
-                                 position=alive_individual._position,
-                                 dna=dead_individual.get_dna())
-            population_cpy.append(new_individual)
-        for dead_individual in dead:
-            population_cpy.remove(dead_individual)
-        return population_cpy
-
-
-    def breed_example_with_ga(self, population):
-        """
-        application of a basic genetic algorithm for breeding
-        """
-        population_cpy = copy(population)
-        dead = []
-        alive = []
-        for individual in population_cpy:
-            if individual.dead:
-                dead.append(individual)
-            else:
-                alive.append(individual)
-
-        for _ in range(len(dead)):
-            # get the position where the child should be inserted on the field
-            where = choice(alive)._position
-            color = alive[0].color
-
-            selected = self.select_example(population_cpy)
-            parent1 = selected[0]
-            parent2 = selected[1]
-            child1, child2 = self.crossover_example(copy(parent1), copy(parent2))
-            child1 = self.tweak_example(child1)
-            child2 = self.tweak_example(child2)
-            score_child1 = self.assess_individual_fitness_example(child1)
-            score_child2 = self.assess_individual_fitness_example(child2)
-            if score_child1 > score_child2:
-                new_individual = Dot(self.parent, color=color, position=where, dna=child1.get_dna())
-            else:
-                new_individual = Dot(self.parent, color=color, position=where, dna=child2.get_dna())
-            population_cpy.append(new_individual)
-        for dead_individual in dead:
-            population_cpy.remove(dead_individual)
-        return population_cpy
-
-
-    def tweak_example(self, individual):
-        """
-        we want to increase the trait to seek food and increase armor
-        """
-
-        dna = individual.get_dna()
-        increase = uniform(0, 0.1)
-
-        perc = dna[0]
-        des = dna[1]
-        abil = dna[2]
-
-        perc = self.mutate_dna(
-            dna=perc, increase_value=increase, increase=0)
-        des = self.mutate_dna(
-            dna=des, increase_value=increase, increase=0)
-        abil = self.mutate_dna(
-            dna=abil, increase_value=increase, increase=0)
-
-        dna = [perc, des, abil]
-        individual.dna_to_traits(dna)
-        return individual
-
     def mutate_dna(self, dna, increase_value, increase):
         # select some other dna to be decreased
         choices = [i for i in range(len(dna))]
@@ -239,29 +211,39 @@ class Breeder:
         # otherwise we cannot do anything
         return dna
 
-
-    def crossover_example(self, solution_a, solution_b):
-        """
-        crossover of two individuals
-        """
+    def recombine(self, solution_a, solution_b):
         dna_a = solution_a.get_dna()
         dna_b = solution_b.get_dna()
+
+        p = np.random.uniform(low=0.01, high=0.1, size=len(dna_a))
         for i in range(len(dna_a)):
-            if uniform(0, 1) < 0.5:
-                tmp = dna_a[i]
-                dna_a[i] = dna_b[i]
-                dna_b[i] = tmp
+            for j in range(len(dna_a[i])):
+                alpha = np.random.uniform(-p[i], 1 + p[i])
+                beta = np.random.uniform(-p[i], 1 + p[i])
+                t = alpha * dna_a[i][j] + (1 - alpha) * dna_b[i][j]
+                s = beta * dna_b[i][j] + (1 - beta) * dna_a[i][j]
+                if t > 0.01 and s > 0.01:
+                    dna_a[i][j] = t
+                    dna_b[i][j] = s
+
+            dna_a[i] = dna_a[i] / np.sum(dna_a[i])
+            dna_b[i] = dna_b[i] / np.sum(dna_b[i])
+
         solution_a.dna_to_traits(dna_a)
         solution_b.dna_to_traits(dna_b)
+
+        # print('Solution A: ', dna_a)
+        # print('Solution B: ', dna_b)
+
         return solution_a, solution_b
 
-    def select_example(self, population):
+    def select(self, population):
         """
         example select
         """
         fitness_array = np.empty([len(population)])
         for i in range(len(population)):
-            score = self.assess_individual_fitness_example(population[i])
+            score = self.assess_individual_fitness(population[i])
             fitness_array[i] = score
 
         # span value range
@@ -290,7 +272,29 @@ class Breeder:
         # return all selected individual indices
         return np.array(individual_indices)
 
-    def assess_individual_fitness_example(self, individual):
+    fitness_weight = np.zeros((3,6))
+
+    fitness_weight[0][0] = 10
+    fitness_weight[0][1] = 5
+    fitness_weight[0][2] = 5
+    fitness_weight[0][3] = 5
+    fitness_weight[0][4] = 5
+    fitness_weight[0][5] = 15
+
+    fitness_weight[1][0] = 10
+    fitness_weight[1][1] = 5
+    fitness_weight[1][2] = 15
+    fitness_weight[1][3] = 5
+    fitness_weight[1][4] = 5
+    fitness_weight[1][5] = 5
+
+    fitness_weight[2][0] = 5
+    fitness_weight[2][1] = 5
+    fitness_weight[2][2] = 5
+    fitness_weight[2][3] = 5
+    fitness_weight[2][4] = 15
+
+    def assess_individual_fitness(self, individual):
         """
         example fitness assessment of an individual
         """
@@ -325,6 +329,21 @@ class Breeder:
         # what makes up a good individual?
         # maybe one that survived long, had a large food perception
         # and a high desire to eat food + high armor?
-        score = dna[0][0] + dna[1][0] + dna[2][0] + \
-            statistic.time_survived + statistic.food_eaten + statistic.food_seen
+        # score = dna[0][0] + dna[1][0] + dna[2][0] + \
+        # statistic.time_survived + statistic.food_eaten + statistic.food_seen
+        score = 0
+        for i in range(len(dna)):
+            for j in range(len(dna[i])):
+                score += self.fitness_weight[i][j] * dna[i][j]
+        if(statistic.time_survived > 1200):
+            for i in range(len(dna)):
+                for j in range(len(dna[i])):
+                    if (dna[i][j]>0.5):
+                        self.fitness_weight[i][j] = 15
+                    elif (dna[i][j]>0.3):
+                        self.fitness_weight[i][j] = 10
+                    elif (dna[i][j]<0.01):
+                        self.fitness_weight[i][j] = 2
+
+        print(self.fitness_weight)
         return score
