@@ -1,9 +1,8 @@
 from game.individuals.dot import Dot
 
-from random import choice, uniform
+from random import choice, uniform, randint
 from copy import copy
 
-import random as random
 import numpy as np
 
 class Breeder:
@@ -11,131 +10,21 @@ class Breeder:
         self.parent = parent
 
     def breed(self, population):
-        """
-        this function gets called by the EGame on one population
-        it gets a population consisting of individuals
-        each individual has certain statistics and traits
-        """
-        population_cpy = copy(population)
-        dead = []
-        alive = []
-        for individual in population_cpy:
-            if individual.dead:
-                dead.append(individual)
-            else:
-                alive.append(individual)
 
-        for _ in range(len(dead)):
-            # get the position where the child should be inserted on the field
-            where = choice(alive)._position
-            color = alive[0].color
-
-            selected = self.select(population_cpy)
-            parent1 = selected[0]
-            best = parent1
-            best_score = self.assess_individual_fitness(parent1)
-
-            parent2 = selected[1]
-            score_parent2 = self.assess_individual_fitness(parent1)
-            if(score_parent2>best_score):
-                best = parent2
-                best_score = score_parent2
-
-            child1, child2 = self.recombine(copy(parent1), copy(parent2))
-            # child1, child2 = self.crossover_example(copy(parent1), copy(parent2))
-            # child1 = self.tweak_example(child1)
-            # child2 = self.tweak_example(child2)
-            tweak_prob = random.random()
-            if(tweak_prob < 0.1):
-                child1 = self.tweak_random(child1)
-                child2 = self.tweak_random(child2)
-            elif(tweak_prob < 0.2):
-                child1 = self.tweak_default(child1)
-                child2 = self.tweak_default(child2)
-
-
-            score_child1 = self.assess_individual_fitness(child1)
-            if(score_child1>best_score):
-                best = child1
-                best_score = score_child1
-
-            score_child2 = self.assess_individual_fitness(child2)
-            if(score_child2>best_score):
-                best = child2
-                best_score = score_child2
-
-            new_individual = Dot(self.parent, color=color, position=where, dna=best.get_dna())
-            population_cpy.append(new_individual)
-        for dead_individual in dead:
-            population_cpy.remove(dead_individual)
-        return population_cpy
-        # return self.breed_copy_dead_example(population)
-        # return self.breed_example_with_ga(population)
-
-    def tweak_default(self, individual):
-        #tweak_example
-        """
-        we want to increase
-        predator perception
-        speed
-        seek health potion desire
-        """
-
-        dna = individual.get_dna()
-        increase = uniform(0, 0.1)
-
-        perc = dna[0]
-        des = dna[1]
-        abil = dna[2]
-
-        perc = self.mutate_dna(
-            dna=perc, increase_value=increase, increase=5)
-        des = self.mutate_dna(
-            dna=des, increase_value=increase, increase=2)
-        abil = self.mutate_dna(
-            dna=abil, increase_value=increase, increase=1)
-
-        dna = [perc, des, abil]
-        individual.dna_to_traits(dna)
-        return individual
-
-    def tweak_random(self, individual):
-        #tweak_example
-        """
-        we want to increase the trait to seek food and increase armor
-        """
-
-        dna = individual.get_dna()
-        increase = uniform(0, 0.1)
-
-        perc = dna[0]
-        des = dna[1]
-        abil = dna[2]
-
-        perc = self.mutate_dna(
-            dna=perc, increase_value=increase, increase=random.randint(0, 5))
-        des = self.mutate_dna(
-            dna=des, increase_value=increase, increase=random.randint(0, 5))
-        abil = self.mutate_dna(
-            dna=abil, increase_value=increase, increase=random.randint(0, 4))
-
-        dna = [perc, des, abil]
-        individual.dna_to_traits(dna)
-        return individual
+        return self.breed_function(population)
 
     def initialize_population(self, num_individuals, color):
-        """
-        this function gets calles by EGame before the first frame
-        it gets the number of individuals which have to be generated
-        also, it gets the color of the population
+         """
+        init function with each individuals having outstanding perception, ability and desire (centric value)
+        in one out of the features. other features value are small random value
         """
         population = []
         for i in range(num_individuals):
-            greater_than = 0.3
-            less_than = 0.5
-            centric_a = round(random.uniform(greater_than, less_than), 2)
-            centric_b = round(random.uniform(greater_than, less_than), 2)
-            centric_c = round(random.uniform(greater_than, less_than), 2)
+            greater_than = 0.5
+            less_than = 0.7
+            centric_a = round(uniform(greater_than, less_than), 2)
+            centric_b = round(uniform(greater_than, less_than), 2)
+            centric_c = round(uniform(greater_than, less_than), 2)
             a = np.random.dirichlet(np.ones(5), size=1)[0] * (1-centric_a)#perception
             b = np.random.dirichlet(np.ones(4), size=1)[0] * (1-centric_b)#ability
             c = np.random.dirichlet(np.ones(5), size=1)[0] * (1-centric_c)#desire
@@ -163,9 +52,9 @@ class Breeder:
                 a = np.random.dirichlet(np.ones(5), size=1)[0]
                 b = np.random.dirichlet(np.ones(5), size=1)[0]
                 c = np.random.dirichlet(np.ones(5), size=1)[0]
-            population.append(self.assign_value(a, b, c, color))
+
+            population.append(self.assign_value(a, b, c, color=(0,139,139)))
         return population
-        # return self.initialize_population_example(num_individuals, color)
 
     def assign_value(self, a, b, c, color):
         x = Dot(self.parent, color=color)
@@ -185,165 +74,152 @@ class Breeder:
         x.desires.dodge_predators = c[0]
         x.desires.dodge_poison = c[1]
         x.desires.seek_potion = c[2]
-        x.desires.seek_opponents = c[3] #
+        x.desires.seek_opponents = c[3]
         x.desires.seek_food = c[4]
         x.desires.seek_corpse = c[5]
         return x
 
-    def mutate_dna(self, dna, increase_value, increase):
-        # select some other dna to be decreased
-        choices = [i for i in range(len(dna))]
-        choices.remove(increase)
-        decreased = False
-        while not decreased:
-            decrease = choice(choices)
-            if dna[decrease] - increase_value >= 0.0:
-                dna[decrease] -= increase_value
-                decreased = True
+    def breed_function(self, population):
+         """
+        breed function with our created crossover, tweak and mutation
+        """
+        population_cpy = copy(population)
+        dead = []
+        alive = []
+        for individual in population_cpy:
+            if individual.dead:
+                dead.append(individual)
             else:
-                choices.remove(decrease)
-            if len(choices) == 0:
-                break
-        # if we were able to reduce the value for the other dna -> increase the desired dna
-        if decreased:
-            # increase the value
-            dna[increase] += increase_value if dna[increase] <= 1.0 else 1.0
-        # otherwise we cannot do anything
-        return dna
+                alive.append(individual)
 
-    def recombine(self, solution_a, solution_b):
-        dna_a = solution_a.get_dna()
-        dna_b = solution_b.get_dna()
+        for _ in range(len(dead)):
+            where = choice(alive)._position
+            color = alive[0].color
 
-        p = np.random.uniform(low=0.01, high=0.1, size=len(dna_a))
-        for i in range(len(dna_a)):
-            for j in range(len(dna_a[i])):
-                alpha = np.random.uniform(-p[i], 1 + p[i])
-                beta = np.random.uniform(-p[i], 1 + p[i])
-                t = alpha * dna_a[i][j] + (1 - alpha) * dna_b[i][j]
-                s = beta * dna_b[i][j] + (1 - beta) * dna_a[i][j]
-                if t > 0.01 and s > 0.01:
-                    dna_a[i][j] = t
-                    dna_b[i][j] = s
-
-            dna_a[i] = dna_a[i] / np.sum(dna_a[i])
-            dna_b[i] = dna_b[i] / np.sum(dna_b[i])
-
-        solution_a.dna_to_traits(dna_a)
-        solution_b.dna_to_traits(dna_b)
-
-        # print('Solution A: ', dna_a)
-        # print('Solution B: ', dna_b)
-
-        return solution_a, solution_b
+            selected = self.select(population_cpy)
+            parent1 = selected[0]
+            parent2 = selected[1]
+            child1, child2 = self.crossover(copy(parent1), copy(parent2))
+            child1 = self.tweak(child1)
+            child2 = self.tweak(child2)
+            score_child1 = self.assess_individual_fitness(child1)
+            score_child2 = self.assess_individual_fitness(child2)
+            if score_child1 > score_child2:
+                new_individual = Dot(self.parent, color=color, position=where, dna=child1.get_dna())
+                print(score_child1)
+            else:
+                new_individual = Dot(self.parent, color=color, position=where, dna=child2.get_dna())
+            population_cpy.append(new_individual)
+        for dead_individual in dead:
+            population_cpy.remove(dead_individual)
+        return population_cpy
 
     def select(self, population):
         """
-        example select
+        Creates the distribution to be used in the selectParentSUS: We chose not to use a Fitness Proportional Selection because it can have bad performance when a member of the population has a really large fitness in comparison with other members. Using a comb-like ruler, SUS starts from a small random number, and chooses the next candidates from the rest of population remaining, not allowing the fittest members to saturate the candidate space.
         """
         fitness_array = np.empty([len(population)])
         for i in range(len(population)):
             score = self.assess_individual_fitness(population[i])
             fitness_array[i] = score
 
-        # span value range
         for i in range(1, len(fitness_array)):
             fitness_array[i] = fitness_array[i] + fitness_array[i - 1]
 
         parents = self.selectParentSUS(population, fitness_array, 2)
         return parents
 
-    def selectParentSUS(self, population, fitness_array, count):
-        """
-        Stochastic uniform sampling
-        """
-        individual_indices = []
-        # build the offset = random number between 0 and f_l / n
-        offset = uniform(0, fitness_array[-1] / count)
-        # repeat for all selections (n)
-        for _ in range(count):
-            index = 0
-            # increment the index until we reached the offset
-            while fitness_array[index] < offset:
-                index += 1
-            # increment the offset to the next target
-            offset = offset + fitness_array[-1] / count
-            individual_indices.append(population[index])
-        # return all selected individual indices
-        return np.array(individual_indices)
-
-    fitness_weight = np.zeros((3,6))
-
-    fitness_weight[0][0] = 10
-    fitness_weight[0][1] = 5
-    fitness_weight[0][2] = 5
-    fitness_weight[0][3] = 5
-    fitness_weight[0][4] = 5
-    fitness_weight[0][5] = 15
-
-    fitness_weight[1][0] = 10
-    fitness_weight[1][1] = 5
-    fitness_weight[1][2] = 15
-    fitness_weight[1][3] = 5
-    fitness_weight[1][4] = 5
-    fitness_weight[1][5] = 5
-
-    fitness_weight[2][0] = 5
-    fitness_weight[2][1] = 5
-    fitness_weight[2][2] = 5
-    fitness_weight[2][3] = 5
-    fitness_weight[2][4] = 15
-
     def assess_individual_fitness(self, individual):
         """
-        example fitness assessment of an individual
+        The objective of the game is to last longer so the time_survived should be included in the fitness function. Eating food is also a factor that makes the individual last longer so we make a multiplication of them both. As our breed_function compares the fitness of the two children generated, if we only consider the time_survived and the food_eaten, both of them would have a fitness score of 0, so that's why we add dna genes that could make a individual has better chances to survive longer.
         """
-        # get statistics of individual
-        # refer to Statistic class
-        # what parameter are stored in a statistic object
         statistic = individual.statistic
-        # get dna of individual
-        # multi dimensional array
-        # perception_dna_array = [0][x]
-        #   food =               [0][0]
-        #   poison =             [0][1]
-        #   health_potion =      [0][2]
-        #   opponent =           [0][3]
-        #   corpse =             [0][4]
-        #   predator =           [0][5]
-        # desires_dna_array =    [1][x]
-        #   seek_food =          [1][0]
-        #   dodge_poison =       [1][1]
-        #   seek_potion =        [1][2]
-        #   seek_opponents =     [1][3]
-        #   seek_corpse =        [1][4]
-        #   dodge_predators =    [1][5]
-        # abilities_dna_array =  [2][x]
-        #   armor_ability =      [2][0]
-        #   speed =              [2][1]
-        #   strength =           [2][2]
-        #   poison_resistance =  [2][3]
-        #   toxicity =           [2][4]
         dna = individual.get_dna()
-        # you should come up with your own fitness function
-        # what makes up a good individual?
-        # maybe one that survived long, had a large food perception
-        # and a high desire to eat food + high armor?
-        # score = dna[0][0] + dna[1][0] + dna[2][0] + \
-        # statistic.time_survived + statistic.food_eaten + statistic.food_seen
-        score = 0
-        for i in range(len(dna)):
-            for j in range(len(dna[i])):
-                score += self.fitness_weight[i][j] * dna[i][j]
-        if(statistic.time_survived > 1200):
-            for i in range(len(dna)):
-                for j in range(len(dna[i])):
-                    if (dna[i][j]>0.5):
-                        self.fitness_weight[i][j] = 15
-                    elif (dna[i][j]>0.3):
-                        self.fitness_weight[i][j] = 10
-                    elif (dna[i][j]<0.01):
-                        self.fitness_weight[i][j] = 2
-
-        print(self.fitness_weight)
+        score = (statistic.time_survived * statistic.food_eaten) + dna[0][0] + dna[1][0] + dna[2][2] + dna[2][4] + dna[1][5] + dna[0][5] + dna[0][3]
         return score
+
+    def selectParentSUS(self, population, fitness_array, count):
+        """
+        Stochastic uniform sampling (The reason of working with this type of selection is commented on the select function)
+        """
+        individual_indices = []
+        offset = uniform(0, fitness_array[-1] / count)
+        for _ in range(count):
+            index = 0
+
+            while fitness_array[index] < offset:
+                index += 1
+
+            offset = offset + fitness_array[-1] / count
+            individual_indices.append(population[index])
+
+        return np.array(individual_indices)
+
+    def crossover(self, solution_a, solution_b):
+        """
+        We just generate a random division k in one point that split the dna array of the parents in two blocks in order to make a crossover of them interchanging the first block of parent_a with the first of parent_b, and the same with the second blocks. We think that making this crossover by blocks is better because it exploites more group of genes that could be working well together and making fitter indivuduals.
+        """
+        dna_a = solution_a.get_dna()
+        dna_b = solution_b.get_dna()
+        k = randint(1, len(dna_a)-1)
+        #swap with separator at k
+        temp = copy(dna_b[0:k])
+        dna_b[0:k] = copy(dna_a[0:k])
+        dna_a[0:k] = copy(temp)
+        solution_a.dna_to_traits(dna_a)
+        solution_b.dna_to_traits(dna_b)
+        return solution_a, solution_b
+
+    def tweak(self, individual):
+        """
+        This funtions increases the highest gene value (best_) contained in the perception dna, desires dna and abilities dna adding a random value between 0 and 0,3. Because the dna must always sum 1, the increased value is decreased to the lowest gene value (worst_). We consider than exploiting and making the difference between the highest and the lowest gene value greater, will make the individual fitter.
+        """
+        dna = individual.get_dna()
+        increase = uniform(0, 0.3)
+
+        perc = dna[0]
+        des = dna[1]
+        abil = dna[2]
+
+        best_perc = np.argmax(perc)
+        best_des = np.argmax(des)
+        best_abil = np.argmax(abil)
+
+        worst_perc = np.argmin(perc)
+        worst_des = np.argmin(des)
+        worst_abil = np.argmin(abil)
+
+        perc = self.mutate_dna(dna=perc, increase_value=increase, increase=best_perc, decrease=worst_perc)
+        des = self.mutate_dna(dna=des, increase_value=increase, increase=best_des, decrease=worst_des)
+        abil = self.mutate_dna(dna=abil, increase_value=increase, increase=best_abil, decrease=worst_abil)
+
+        dna = [perc, des, abil]
+        individual.dna_to_traits(dna)
+        return individual
+
+    def mutate_dna(self, dna, increase_value, increase, decrease):
+        """
+        None of the genes can take a value greater than 1. So, in order to make the mutation we have to check first if the highest gene value + the increased value, is over the limit or not. If it does then the highest value becomes 1. We then decrease the real increased value to the lowest gene value in the array.
+        """
+        if dna[increase] + increase_value > 1:
+            increase_value = 1-dna[increase]
+            dna[increase] = 1
+        else:
+            dna[increase] += increase_value
+
+        dna[decrease] -= increase_value
+        if dna[decrease] < 0:
+            left_over=0-dna[decrease]
+            dna[decrease] = 0
+            choices = [i for i in range(len(dna))]
+            print("before",choices)
+            choices.remove(increase)
+            choices.remove(decrease)
+            print("after",choices)
+            decrease2 = choice(choices)
+            dna[decrease2]-=left_over
+            if dna[decrease2] < 0:
+                left_over2=0-dna[decrease2]
+                dna[decrease2] = 0
+                dna[increase]-=left_over2
+        return dna
